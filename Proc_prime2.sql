@@ -1,0 +1,1185 @@
+ALTER PROCEDURE [dbo].[SP_Carga_TBL_ATENC_ESPEC_PRIME_2]
+
+@DT_Competencia VARCHAR (7)
+AS 
+BEGIN
+	SET NOCOUNT ON
+
+
+/*
+==================================================================================================
+Data:			...08/08/2024
+Autor:			... Fabiana  Pacheco
+Descrição:		...
+Solicitado por:	... Chamado #111011
+Propósito:		... Criação do procedimento de carga da tabela de Atenção Básica Especializada
+Observação:		... 
+
+Job: 			01 - DW_xxxxxx - Carga: TBL_ATENC_ESPEC_PRIME_2
+Description:	Carga de hora em hora de Atenção Básica Especializada - PRIME
+Step: 			Carga
+Command: 		
+----EXEC SP_Carga_TBL_ATENC_ESPEC_PRIME_2 '2024-08';
+
+----mês anterior
+--DECLARE @anoMes VARCHAR(7);
+--SET @anoMes = CONVERT(varchar(7), DATEADD(month, -1, GETDATE()), 126);
+--EXEC SP_Carga_TBL_ATENC_ESPEC_PRIME_2 @DT_Competencia = @anoMes;
+
+
+--mês atual
+DECLARE @anoMes VARCHAR(7);
+SET @anoMes = CONVERT(varchar(7), GetDate(),126);
+EXEC SP_Carga_TBL_ATENC_ESPEC_PRIME_2 @DT_Competencia = @anoMes;
+
+TRUNCATE TABLE TBL_ATENC_ESPEC_PRIME_2
+
+-----Intervalo de tempo
+DECLARE @DataInicial DATE = '2024-05-01';	-- Data inicial
+DECLARE @DataFinal DATE = '2024-12-01';		-- Data final
+DECLARE @DataControle DATE = @DataInicial;  -- Variável para controlar o loop
+DECLARE @AnoMes VARCHAR(7);					-- Variável para armazenar o mês e ano no formato 'yyyy-MM'
+
+
+WHILE @DataControle <= @DataFinal
+BEGIN
+    -- Formatar a data como 'yyyy-MM'
+    SET @AnoMes = CONVERT(VARCHAR(7), @DataControle, 126);
+	--PRINT @AnoMes
+
+    -- Executar a procedure com o mês e ano atual
+    EXEC SP_Carga_TBL_ATENC_ESPEC_PRIME_2 @DT_Competencia = @AnoMes;
+
+    -- Incrementar o mês
+    SET @DataControle = DATEADD(MONTH, 1, @DataControle);
+END;
+--(123998 rows affected) levou 00:00:01
+
+
+
+Schedule: 		Carga de hora em hora
+
+SELECT COUNT (*) FROM TBL_ATENC_ESPEC_PRIME_2
+==================================================================================================
+*/
+
+--select DT_COMPETENCIA, max(DATA_INICIO), min(DATA_FIM) from TBL_ATENC_ESPEC_PRIME_2 GROUP BY DT_COMPETENCIA
+
+
+--select * FROM TBL_ATENC_ESPEC_PRIME_2 WHERE SUBSTRING(DT_COMPETENCIA, 6, 2) != month(DATA_INICIO)
+
+--select top 10 SUBSTRING(DT_COMPETENCIA, 5, 2) from TBL_ATENC_ESPEC_PRIME_2
+/* ================================================= */
+/* Declaração de variáveis							 */
+/* ================================================= */
+
+--DECLARE @DT_Competencia VARCHAR (7);	--Só utilizar quando executar manualmente
+DECLARE @Data_Ini DATETIME;
+DECLARE @Data_Fim DATETIME;
+
+--SET @DT_Competencia = '2024-05'
+SET @Data_Ini = CAST(@DT_Competencia + '-01' AS DATE)
+SET @Data_Fim = DATEADD (DAY, 1, EOMONTH (@Data_Ini))
+
+/*
+SELECT 
+	  @DT_Competencia			AS DT_Competencia
+	, @Data_Ini			AS Data_Ini
+	, @Data_Fim			AS Data_Fim
+	--, convert(varchar, @Data_Ini, 103) -- dd/mm/yyyy
+	;
+*/
+/*
+DT_Competencia		Data_Ini					Data_Fim
+2024-02				2024-02-01 00:00:00.000		2024-03-01 00:00:00.000
+*/
+
+--DECLARE @unidadeid uniqueidentifier = '792AACC3-3FB7-46A6-9536-EB4F00483148'	--'MINI POSTO PARQUE ALIAN'
+/* ================================================= */
+
+
+/* ================================================= */
+/* Criação das tabelas que serão usadas no processo  */
+/* ================================================= */
+/*
+DROP TABLE #TBL_01;
+DROP TABLE #TBL_02;
+DROP TABLE #TBL_03;
+DROP TABLE #TBL_04;
+DROP TABLE #TBL_05;
+DROP TABLE #TBL_06;
+DROP TABLE #TBL_07;
+*/
+--DROP TABLE TBL_ATENC_ESPEC_PRIME_2;
+
+
+CREATE TABLE #TBL_01 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_02 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_03 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_04 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_05 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_06 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+);
+
+CREATE TABLE #TBL_07 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+
+	, COD_SIGTAP						VARCHAR(10)
+	--, DESC_SIGTAP						VARCHAR(255)
+	, TIPO								VARCHAR(50)
+	--, GRUPO								VARCHAR (50)
+	--, SUB_GRUPO							VARCHAR (100)
+	--, FORMA_CONTRATACAO					VARCHAR (100)
+	--, DT_ATUALIZACAO						DATETIME
+	
+	--, CNES_ESTAB						VARCHAR (7)
+	, NM_ESTABELECIMENTO_COMPLETO		VARCHAR (100)
+	, NM_ESTABELECIMENTO_ABREVIADO		VARCHAR (100)
+	, NM_POPULAR_ESTABELECIMENTO 		VARCHAR (100)
+);
+
+
+/*
+CREATE TABLE TBL_ATENC_ESPEC_PRIME_2 (
+	  DT_COMPETENCIA					VARCHAR (7)
+	, ORIGEM							VARCHAR (100)
+	, ATENDIMENTO_ID					UNIQUEIDENTIFIER
+	, VISITADOMICILIAR_ID				UNIQUEIDENTIFIER
+	, ATIVIDADEGRUPO_ID					UNIQUEIDENTIFIER
+	, PROCEDIMENTO_ID					UNIQUEIDENTIFIER
+	, DATA_ATENDIMENTO					DATETIME
+	, DATA_INICIO						DATETIME
+	, DATA_FIM							DATETIME
+	, CATEGORIA_PROFISSIONAL			VARCHAR (255)
+	, NOME_PROFISSIONAL					VARCHAR (100)
+	, CID								VARCHAR (255)
+	, CIAP2								VARCHAR (255)
+	, UNIDADE_ID 						UNIQUEIDENTIFIER
+	, UNIDADE							VARCHAR (255)
+	, CNES								VARCHAR (7)
+	, COD_PROCEDIMENTO 					VARCHAR(10)
+	, NOME_PROCEDIMENTO					VARCHAR(255)
+	, CBO_CODIGO 						VARCHAR(6)
+	, PROF_CODIGO						VARCHAR(4)
+	, ID_FUNCAO_ATENDIMENTO				UNIQUEIDENTIFIER
+	, QUANTIDADE						INT
+	, DT_ATUALIZACAO					DATETIME
+);
+*/
+/* ================================================= */
+
+
+
+/* ================================================= */
+/* Apaga dasdos da tabela para carregar novos dados	 */
+/* ================================================= */
+
+--TRUNCATE TABLE TBL_ATENC_ESPEC_PRIME_2;
+
+-- Apaga os dados antes de carregar
+
+DELETE
+FROM TBL_ATENC_ESPEC_PRIME_2
+WHERE DT_COMPETENCIA = @DT_Competencia
+
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*				Procedimentos Realizados			 */
+/* ================================================= */
+
+INSERT INTO #TBL_01
+SELECT
+	  DT_COMPETENCIA = @DT_Competencia
+	, 'Atendimentos'																AS ORIGEM
+	, AT.AtendimentoId																AS ATENDIMENTO_ID
+	, NULL 																			AS VISITADOMICILIAR_ID
+	, NULL 																			AS ATIVIDADEGRUPO_ID
+	, PR.ProcedimentoRealizadoId													AS PROCEDIMENTO_ID
+	, AT.DATAREGISTRO																AS DATA_ATENDIMENTO
+	, AT.DATAINICIO																	AS DATA_INICIO
+	, AT.DATAFIM																	AS DATA_FIM
+	, ISNULL(ProfissionalLotacao.NO_CLASSIFICACAO, CBO.NO_CLASSIFICACAO)			AS CATEGORIA_PROFISSIONAL ----Alessandro 1
+	, PF.PROF_NOME																	AS NOME_PROFISSIONAL
+	, C.NO_CID																		AS CID
+	, CI.DESCRICAO																	AS CIAP2
+	, AT.UNIDADEID																	AS UNIDADE_ID
+	, U.UNID_DESCRICAO																AS UNIDADE
+	, U.unid_codigoCNES																AS CNES
+	--, ''																			AS CNES
+	, PRO.CO_PROCEDIMENTO															AS COD_PROCEDIMENTO
+	, PRO.NO_PROCEDIMENTO															AS NOME_PROCEDIMENTO
+	, CONVERT(VARCHAR(6), ISNULL(ProfissionalLotacao.cbo_codigo, CBO.CO_OCUPACAO))	AS CBO_CODIGO
+	, AT.prof_codigo																AS PROF_CODIGO
+	, AT.IdFuncaoAtendimento														AS ID_FUNCAO_ATENDIMENTO
+	, PR.Quantidade																	AS QUANTIDADE
+FROM LINKED_SERVER.dbo.ATENDIMENTO AT WITH (NOLOCK)
+INNER JOIN	LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK)					ON AT.UNIDADEID = U.UNIDADEID	--Incluído pelo Chaym
+INNER JOIN	LINKED_SERVER.dbo.PACIENTE P WITH (NOLOCK)					ON P.PACIENTEID = AT.PACIENTEID 
+INNER JOIN	LINKED_SERVER.dbo.ProcedimentoRealizado PR WITH (NOLOCK)	ON AT.AtendimentoId = PR.AtendimentoId 
+INNER JOIN	LINKED_SERVER.dbo.SETOR_CLINICA SC WITH (NOLOCK)			ON SC.SETORCLINICAID = PR.SETORCLINICAID
+LEFT JOIN	LINKED_SERVER.dbo.TB_PROCEDIMENTO PRO WITH (NOLOCK)			ON PRO.CO_PROCEDIMENTO = SC.CO_PROCEDIMENTO
+LEFT JOIN	LINKED_SERVER.dbo.funcao_atendimento FA WITH (NOLOCK)		ON FA.idFuncaoAtendimento = AT.idFuncaoAtendimento
+INNER JOIN	LINKED_SERVER.dbo.Profissional_Rede Pf WITH (NOLOCK)		ON Pf.prof_codigo = AT.prof_codigo
+LEFT JOIN	LINKED_SERVER.dbo.TB_OCUPACAO CBO WITH (NOLOCK)				ON Pf.CBO_CODIGO = CBO.CO_OCUPACAO	--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.PROBLEMAATENDIMENTO PA WITH (NOLOCK)		ON AT.ATENDIMENTOID = PA.ATENDIMENTOID	--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.PROBLEMA PB WITH (NOLOCK)					ON PA.PROBLEMAID = PB.PROBLEMAID		--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.CIAP_2 CI WITH (NOLOCK)					ON PB.CIAP_CODIGO = CI.CIAP_CODIGO		--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.TB_CID C WITH (NOLOCK)					ON PB.CO_CID = C.CO_CID					--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.Equipe E WITH (NOLOCK)					ON E.EquipeId = AT.EquipeId 
+OUTER APPLY ( 	SELECT TOP 1 
+					  pl.cbo_codigo
+					, pl.ProfissionalLotacaoId
+					, pl.prof_Codigo
+					, PL.prof_ativo
+					, PLCBO.NO_CLASSIFICACAO ----Alessandro 2
+				FROM LINKED_SERVER.dbo.PROFISSIONAL_LOTACAO PL WITH (NOLOCK)
+				INNER JOIN LINKED_SERVER.dbo.TB_OCUPACAO PLCBO WITH (NOLOCK) ON PL.cbo_codigo = PLCBO.CO_OCUPACAO ----Alessandro 3
+				WHERE PF.prof_codigo = pl.prof_codigo
+					AND AT.UnidadeId = pl.UnidadeId
+					AND PL.IdFuncaoAtendimento = AT.IdFuncaoAtendimento
+			) ProfissionalLotacao 
+WHERE PRO.CO_PROCEDIMENTO IS NOT NULL
+	-- AND (AT.DATAFIM >= @Data_Ini AND AT.DATAFIM < @Data_Fim )
+	AND (AT.DATAINICIO >= @Data_Ini AND AT.DATAFIM < @Data_Fim )
+;
+--(123998 rows affected) levou 00:00:01
+
+--SELECT TOP 10 * FROM #TBL_01
+--SELECT COUNT (*) FROM #TBL_01	--123.998	--135.690
+--SELECT COUNT (DISTINCT ATENDIMENTO_ID) AS QTD_ATENDIMENTO FROM #TBL_01	--44.249
+--SELECT SUM (QUANTIDADE) AS TOTAL FROM #TBL_01
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*					Visitas ACS						 */
+/* ================================================= */
+
+INSERT INTO #TBL_02
+SELECT 
+	  DT_COMPETENCIA = @DT_Competencia
+	, 'Visitas ACS'																	AS ORIGEM
+	, NULL 																			AS ATENDIMENTO_ID
+	, VD.VisitaDomiciliarId															AS VISITADOMICILIAR_ID
+	, NULL 																			AS ATIVIDADEGRUPO_ID
+	, NEWID ()																		AS PROCEDIMENTO_ID
+	, VD.DataVisita																	AS DATA_ATENDIMENTO
+	, VD.DataVisita			 														AS DATA_INICIO
+	, VD.DataVisita																	AS DATA_FIM
+	, ISNULL(ProfissionalLotacao.NO_CLASSIFICACAO, CBO.NO_CLASSIFICACAO)			AS CATEGORIA_PROFISSIONAL ----Alessandro 1
+	, PL.PROF_NOME																	AS NOME_PROFISSIONAL
+	, ''																			AS CID
+	, ''																			AS CIAP2
+	, CASE 
+		WHEN A.UNIDADEID IS NULL
+			THEN UNIDADEPACIENTEVISITA.UnidadeId
+		ELSE A.UNIDADEID
+		END																			AS UNIDADE_ID
+	, ISNULL(Unidade_Domicilio.unid_descricao, Unidade_Paciente.unid_descricao)		AS UNIDADE
+	, ISNULL(Unidade_Domicilio.unid_codigoCNES, Unidade_Paciente.unid_codigoCNES)	AS CNES
+	--, ''																			AS CNES
+	, '0101030010' 																	AS COD_PROCEDIMENTO
+	, 'VISITA DOMICILIAR POR PROFISSIONAL DE NIVEL MEDIO' 							AS NOME_PROCEDIMENTO
+	, CONVERT(VARCHAR(6), ISNULL(ProfissionalLotacao.cbo_codigo, CBO.CO_OCUPACAO)) 	AS CBO_CODIGO
+	, pl.prof_codigo 																AS PROF_CODIGO
+	, 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' 										AS ID_FUNCAO_ATENDIMENTO
+	, 1																				AS QUANTIDADE
+FROM LINKED_SERVER.dbo.VISITADOMICILIAR VD WITH (NOLOCK)
+INNER JOIN	LINKED_SERVER.dbo.PROFISSIONAL_REDE PL WITH (NOLOCK)			ON PL.prof_codigo = VD.prof_codigo
+LEFT JOIN	LINKED_SERVER.dbo.TB_OCUPACAO CBO WITH (NOLOCK)					ON PL.CBO_CODIGO = CBO.CO_OCUPACAO	--Incluído pelo Chaym
+INNER JOIN	LINKED_SERVER.dbo.VisitaDomiciliarPaciente VDP WITH (NOLOCK)	ON VDP.VisitaDomiciliarId = VD.VisitaDomiciliarId
+INNER JOIN	LINKED_SERVER.dbo.PACIENTE P WITH (NOLOCK)						ON VDP.PACIENTEID = P.PACIENTEID
+LEFT JOIN	LINKED_SERVER.dbo.NovaFamilia NF WITH (NOLOCK)					ON NF.NovaFamiliaId = VD.NovaFamiliaId
+LEFT JOIN	LINKED_SERVER.dbo.Domicilio D WITH (NOLOCK)						ON NF.DomicilioId = D.DomicilioId
+LEFT JOIN	LINKED_SERVER.dbo.MICROAREA MA WITH (NOLOCK)					ON D.IdMicroArea = MA.IdMicroArea
+LEFT JOIN	LINKED_SERVER.dbo.Endereco EN WITH (NOLOCK)						ON EN.EnderecoId = D.EnderecoId
+LEFT JOIN	LINKED_SERVER.dbo.AREA A WITH (NOLOCK)							ON MA.IdArea = A.IdArea	
+LEFT JOIN	LINKED_SERVER.dbo.EQUIPEATENCAOBASICA EAB WITH (NOLOCK)			ON EAB.IDAREA = A.IDAREA
+LEFT JOIN	LINKED_SERVER.dbo.Equipe E WITH (NOLOCK)						ON E.EquipeId = EAB.EquipeAtencaoBasicaId  	
+OUTER APPLY (	select top 1 p.UnidadeId 
+				from LINKED_SERVER.dbo.VISITADOMICILIAR vd2 WITH (NOLOCK)
+					inner join LINKED_SERVER.dbo.VisitaDomiciliarPaciente vdp2 WITH (NOLOCK)	ON vd2.VisitaDomiciliarId = vdp2.VisitaDomiciliarId
+					inner join LINKED_SERVER.dbo.paciente p WITH (NOLOCK)						ON vdp2.PacienteId = p.PacienteId
+				where vd2.visitadomiciliarid = vd.VisitaDomiciliarId
+			) UNIDADEPACIENTEVISITA
+OUTER APPLY (	SELECT TOP 1 
+					  pl.cbo_codigo
+					, pl.ProfissionalLotacaoId
+					, pl.prof_Codigo
+					, PL.prof_ativo 
+					, PLCBO.NO_CLASSIFICACAO ----Alessandro 2
+				FROM LINKED_SERVER.dbo.PROFISSIONAL_LOTACAO PL WITH (NOLOCK)
+				INNER JOIN LINKED_SERVER.dbo.TB_OCUPACAO PLCBO WITH (NOLOCK)			ON PL.cbo_codigo = PLCBO.CO_OCUPACAO ----Alessandro 3
+				WHERE VD.prof_codigo = pl.prof_codigo 
+					AND A.UnidadeId = pl.UnidadeId 
+					AND	PL.IdFuncaoAtendimento = 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' --Visita Domiciliar
+			) ProfissionalLotacao
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_descricao
+					, U.unid_codigoCNES
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE A.UNIDADEID = U.UNIDADEID
+				) Unidade_Domicilio
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_codigoCNES
+					, U.unid_descricao
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE P.UNIDADEID = U.UNIDADEID
+				) Unidade_Paciente
+
+
+WHERE pl.cbo_codigo = '515105'
+	AND ( VD.DataVisita >= @Data_Ini AND VD.DataVisita < @Data_Fim )
+	AND EXISTS (SELECT 1
+				FROM LINKED_SERVER.dbo.profissional_lotacao p WITH (NOLOCK)
+				WHERE p.prof_codigo = pl.prof_codigo
+					AND p.unidadeid = ISNULL (A.UNIDADEID, UNIDADEPACIENTEVISITA.UnidadeId)
+				)
+;
+
+--(88771 rows affected) levou 00:00:06
+
+--SELECT TOP 10 * FROM #TBL_02
+--SELECT COUNT (*) FROM #TBL_02	--88.771	--88.742
+--SELECT COUNT (DISTINCT ATENDIMENTO_ID) AS QTD_ATENDIMENTO FROM #TBL_02	--0
+--SELECT SUM (QUANTIDADE) AS TOTAL FROM #TBL_02
+
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*			Visitas demais profissionais			 */
+/* ================================================= */
+
+INSERT INTO #TBL_03
+SELECT
+	  DT_COMPETENCIA = @DT_Competencia
+	, 'Visitas demais profissionais'												AS ORIGEM
+	, NULL 																			AS ATENDIMENTO_ID
+	, VD.VisitaDomiciliarId															AS VISITADOMICILIAR_ID
+	, NULL 																			AS ATIVIDADEGRUPO_ID
+	, NEWID ()																		AS PROCEDIMENTO_ID
+	, VD.DataVisita																	AS DATA_ATENDIMENTO
+	, VD.DataVisita																	AS DATA_INICIO
+	, VD.DataVisita																	AS DATA_FIM
+	, ISNULL(ProfissionalLotacao.NO_CLASSIFICACAO, CBO.NO_CLASSIFICACAO)			AS CATEGORIA_PROFISSIONAL ----Alessandro 1
+	, PF.PROF_NOME																	AS NOME_PROFISSIONAL
+	, ''																			AS CID
+	, ''																			AS CIAP2
+	, CASE 
+		WHEN A.UNIDADEID IS NULL
+			THEN P.UNIDADEID
+		ELSE A.UnidadeId
+		END																			AS UNIDADE_ID
+	, ISNULL(Unidade_Domicilio.unid_descricao, Unidade_Paciente.unid_descricao)		AS UNIDADE
+	, ISNULL(Unidade_Domicilio.unid_codigoCNES, Unidade_Paciente.unid_codigoCNES)	AS CNES
+	--, ''																			AS CNES
+	, CASE 
+		WHEN (
+				ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322205'
+				OR ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322245'
+				OR ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322430'
+				)
+			THEN '0101030010'
+		ELSE '0101030029'
+		END		 																	AS COD_PROCEDIMENTO
+	, CASE 
+		WHEN (
+				ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322205'
+				OR ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322245'
+				OR ISNULL(ProfissionalLotacao.cbo_codigo, Pf.CBO_CODIGO) = '322430'
+				)
+			THEN 'VISITA DOMICILIAR POR PROFISSIONAL DE NIVEL MEDIO'
+		ELSE 'VISITA DOMICILIAR/INSTITUCIONAL POR PROFISSIONAL DE NIVEL SUPERIOR'
+		END		 																	AS NOME_PROCEDIMENTO
+	, CONVERT(VARCHAR(6), ISNULL(ProfissionalLotacao.cbo_codigo, CBO.CO_OCUPACAO)) 	AS CBO_CODIGO
+	, PF.prof_codigo 																AS PROF_CODIGO
+	, 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' 										AS ID_FUNCAO_ATENDIMENTO
+	, 1																				AS QUANTIDADE
+FROM LINKED_SERVER.dbo.VISITADOMICILIAR VD WITH (NOLOCK) 
+INNER JOIN	LINKED_SERVER.dbo.VisitaDomiciliarPaciente VDP WITH (NOLOCK)	ON VD.VisitaDomiciliarId = VDP.VisitaDomiciliarId
+INNER JOIN	LINKED_SERVER.dbo.PACIENTE P WITH (NOLOCK)						ON VDP.PACIENTEID = P.PACIENTEID
+INNER JOIN	LINKED_SERVER.dbo.PROFISSIONAL_REDE PF WITH (NOLOCK)			ON PF.prof_codigo = VD.prof_codigo
+LEFT JOIN	LINKED_SERVER.dbo.TB_OCUPACAO CBO WITH (NOLOCK)					ON PF.CBO_CODIGO = CBO.CO_OCUPACAO	--Incluído pelo Chaym
+LEFT JOIN	LINKED_SERVER.dbo.NovaFamilia NF WITH (NOLOCK)					ON NF.NovaFamiliaId = VD.NovaFamiliaId
+LEFT JOIN	LINKED_SERVER.dbo.Domicilio D WITH (NOLOCK)						ON NF.DomicilioId = D.DomicilioId
+LEFT JOIN	LINKED_SERVER.dbo.MICROAREA MA WITH (NOLOCK)					ON D.IdMicroArea = MA.IdMicroArea
+LEFT JOIN	LINKED_SERVER.dbo.AREA A WITH (NOLOCK)							ON MA.IdArea = A.IdArea
+LEFT JOIN	LINKED_SERVER.dbo.EQUIPEATENCAOBASICA EAB WITH (NOLOCK)			ON EAB.IDAREA = A.IDAREA
+LEFT JOIN	LINKED_SERVER.dbo.Equipe E WITH (NOLOCK)						ON E.EquipeId = EAB.EquipeAtencaoBasicaId
+OUTER APPLY (	SELECT TOP 1 
+					  pl.cbo_codigo
+					, pl.ProfissionalLotacaoId
+					, pl.prof_Codigo
+					, PL.prof_ativo
+					, PLCBO.NO_CLASSIFICACAO ----Alessandro 2
+				FROM LINKED_SERVER.dbo.PROFISSIONAL_LOTACAO PL WITH (NOLOCK)
+				INNER JOIN LINKED_SERVER.dbo.TB_OCUPACAO PLCBO WITH (NOLOCK) ON PL.cbo_codigo = PLCBO.CO_OCUPACAO ----Alessandro 3
+				WHERE VD.prof_codigo = pl.prof_codigo
+					AND A.UnidadeId = pl.UnidadeId
+					AND PL.IdFuncaoAtendimento = 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' --Visita Domiciliar
+				) ProfissionalLotacao
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_descricao
+					, U.unid_codigoCNES
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE A.UNIDADEID = U.UNIDADEID
+				) Unidade_Domicilio
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_codigoCNES
+					, U.unid_descricao
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE P.UNIDADEID = U.UNIDADEID
+				) Unidade_Paciente
+
+WHERE PF.cbo_codigo <> '515105'
+	AND ( VD.DataVisita >= @Data_Ini AND VD.DataVisita < @Data_Fim )
+;
+
+--(0 rows affected) levou 00:00:01
+
+--SELECT TOP 10 * FROM #TBL_03
+--SELECT COUNT (*) FROM #TBL_03	--	--
+--SELECT COUNT (DISTINCT ATENDIMENTO_ID) AS QTD_ATENDIMENTO FROM #TBL_03	--
+--SELECT SUM (QUANTIDADE) AS TOTAL FROM #TBL_03
+
+/* ================================================= */
+
+
+
+
+/* ================================================= */
+/*			Serviços da Visita Domiciliar			 */
+/* ================================================= */
+
+INSERT INTO #TBL_04
+SELECT
+	  DT_COMPETENCIA = @DT_Competencia
+	, 'Serviços da Visita Domiciliar'												AS ORIGEM
+	, NULL 																			AS ATENDIMENTO_ID
+	, VD.VisitaDomiciliarId															AS VISITADOMICILIAR_ID
+	, NULL 																			AS ATIVIDADEGRUPO_ID
+	, NEWID ()																		AS PROCEDIMENTO_ID
+	, VD.DataVisita																	AS DATA_ATENDIMENTO
+	, VD.DataVisita																	AS DATA_INICIO
+	, VD.DataVisita																	AS DATA_FIM
+	, ISNULL(ProfissionalLotacao.NO_CLASSIFICACAO, CBO.NO_CLASSIFICACAO)			AS CATEGORIA_PROFISSIONAL ----Alessandro 1
+	, PF.PROF_NOME																	AS NOME_PROFISSIONAL
+	, ''																			AS CID
+	, ''																			AS CIAP2
+	, CASE 
+		WHEN A.UNIDADEID IS NULL
+			THEN P.UnidadeId
+		ELSE A.UnidadeId
+		END																			AS UNIDADE_ID
+	, ISNULL(Unidade_Domicilio.unid_descricao, Unidade_Paciente.unid_descricao)		AS UNIDADE
+	, ISNULL(Unidade_Domicilio.unid_codigoCNES, Unidade_Paciente.unid_codigoCNES)	AS CNES
+	--, ''																			AS CNES
+	, PRO.CO_PROCEDIMENTO															AS COD_PROCEDIMENTO
+	, PRO.NO_PROCEDIMENTO															AS NOME_PROCEDIMENTO
+	, ISNULL(ProfissionalLotacao.cbo_codigo, CBO.CO_OCUPACAO)						AS CBO_CODIGO
+	, PF.prof_codigo 																AS PROF_CODIGO
+	, 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' 										AS ID_FUNCAO_ATENDIMENTO
+	, 1																				AS QUANTIDADE
+FROM LINKED_SERVER.dbo.VISITADOMICILIAR VD WITH (NOLOCK)
+INNER JOIN	LINKED_SERVER.dbo.VisitaDomiciliarPaciente VDP WITH (NOLOCK)			ON VD.VisitaDomiciliarId = VDP.VisitaDomiciliarId
+INNER JOIN	LINKED_SERVER.dbo.VisitaDomiciliarPaciente_Servico VDPS WITH (NOLOCK)	ON VDP.VisitaDomiciliarPacienteID = VDPS.VisitaDomiciliarPacienteId
+INNER JOIN	LINKED_SERVER.dbo.setor_clinica S WITH (NOLOCK)							ON VDPS.SetorClinicaId = S.SetorClinicaId
+LEFT JOIN	LINKED_SERVER.dbo.TB_PROCEDIMENTO PRO WITH (NOLOCK)						ON PRO.CO_PROCEDIMENTO = S.CO_PROCEDIMENTO
+INNER JOIN	LINKED_SERVER.dbo.PROFISSIONAL_REDE pf WITH (NOLOCK)					ON pf.prof_codigo = VD.prof_codigo
+LEFT JOIN	LINKED_SERVER.dbo.TB_OCUPACAO CBO WITH (NOLOCK)							ON PF.CBO_CODIGO = CBO.CO_OCUPACAO	--Incluído pelo Chaym
+INNER JOIN	LINKED_SERVER.dbo.PACIENTE P WITH (NOLOCK)								ON VDP.PacienteId = P.PacienteId
+LEFT JOIN	LINKED_SERVER.dbo.NovaFamilia NF WITH (NOLOCK)							ON NF.NovaFamiliaId = VD.NovaFamiliaId
+LEFT JOIN	LINKED_SERVER.dbo.Domicilio D WITH (NOLOCK)								ON NF.DomicilioId = D.DomicilioId
+LEFT JOIN	LINKED_SERVER.dbo.MICROAREA MA WITH (NOLOCK)							ON D.IdMicroArea = MA.IdMicroArea
+LEFT JOIN	LINKED_SERVER.dbo.AREA A WITH (NOLOCK)									ON MA.IdArea = A.IdArea
+LEFT JOIN	LINKED_SERVER.dbo.EQUIPEATENCAOBASICA EAB WITH (NOLOCK)					ON EAB.IDAREA = A.IDAREA
+LEFT JOIN	LINKED_SERVER.dbo.Equipe E WITH (NOLOCK)								ON E.EquipeId = EAB.EquipeAtencaoBasicaId
+OUTER APPLY (	SELECT TOP 1 
+					  pl.cbo_codigo
+					, pl.ProfissionalLotacaoId
+					, pl.prof_Codigo
+					, PL.prof_ativo
+					, PLCBO.NO_CLASSIFICACAO ----Alessandro 2
+				FROM LINKED_SERVER.dbo.PROFISSIONAL_LOTACAO PL WITH (NOLOCK)
+				INNER JOIN LINKED_SERVER.dbo.TB_OCUPACAO PLCBO WITH (NOLOCK) ON PL.cbo_codigo = PLCBO.CO_OCUPACAO ----Alessandro 3
+				WHERE VD.prof_codigo = pl.prof_codigo
+					AND A.UnidadeId = pl.UnidadeId
+					AND PL.IdFuncaoAtendimento = 'D0E46921-FFEF-42FE-842C-CCACE73AB57D' --Visita Domiciliar
+				) ProfissionalLotacao
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_descricao
+					, U.unid_codigoCNES
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE A.UNIDADEID = U.UNIDADEID
+				) Unidade_Domicilio
+
+OUTER APPLY (	SELECT TOP 1 
+					  U.UnidadeId
+					, U.unid_codigoCNES
+					, U.unid_descricao
+				FROM LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK) 	--Incluído pelo Chaym
+				WHERE P.UNIDADEID = U.UNIDADEID
+				) Unidade_Paciente
+
+WHERE S.CO_PROCEDIMENTO IS NOT NULL
+	AND ( VD.DataVisita >= @Data_Ini AND VD.DataVisita < @Data_Fim )
+;
+--(107224 rows affected) levou 00:00:02
+
+--SELECT TOP 10 * FROM #TBL_04
+--SELECT COUNT (*) FROM #TBL_04	--107.224	--107.224
+--SELECT COUNT (DISTINCT ATENDIMENTO_ID) AS QTD_ATENDIMENTO FROM #TBL_04	--
+--SELECT SUM (QUANTIDADE) AS TOTAL FROM #TBL_04
+
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*		Serviços da Atividade Grupo Profissional	 */
+/* ================================================= */
+
+INSERT INTO #TBL_05
+SELECT
+	  DT_COMPETENCIA = @DT_Competencia
+	, 'Serviços da Atividade Grupo Profissional'									AS ORIGEM
+	, NULL 																			AS ATENDIMENTO_ID
+	, NULL																			AS VISITADOMICILIAR_ID
+	, AG.AtividadeGrupoId															AS ATIVIDADEGRUPO_ID
+	, NEWID ()																		AS PROCEDIMENTO_ID
+	, AG.DataInicio																	AS DATA_ATENDIMENTO
+	, AG.DataInicio																	AS DATA_INICIO
+	, AG.DataFim																	AS DATA_FIM
+	, ISNULL(ProfissionalLotacao.NO_CLASSIFICACAO, CBO.NO_CLASSIFICACAO)			AS CATEGORIA_PROFISSIONAL ----Alessandro 1
+	, PR.PROF_NOME																	AS NOME_PROFISSIONAL
+	, ''																			AS CID
+	, ''																			AS CIAP2
+	, AG.UnidadeId																	AS UNIDADE_ID
+	, U.UNID_DESCRICAO																AS UNIDADE
+	, U.unid_codigoCNES																AS CNES
+	--, ''																			AS CNES
+	, PRO.CO_PROCEDIMENTO															AS COD_PROCEDIMENTO
+	, PRO.NO_PROCEDIMENTO															AS NOME_PROCEDIMENTO
+	, ISNULL(ProfissionalLotacao.cbo_codigo, CBO.CO_OCUPACAO)						AS CBO_CODIGO
+	, AGP.prof_codigo 																AS PROF_CODIGO
+	, '170BCDAB-85BC-47BA-9B55-FFF6DCBD1B62' 										AS ID_FUNCAO_ATENDIMENTO
+	, 1																				AS QUANTIDADE
+FROM LINKED_SERVER.dbo.AtividadeGrupoProfissionalServico AGS WITH (NOLOCK)
+INNER JOIN	LINKED_SERVER.dbo.AtividadeGrupoProfissional AGP WITH (NOLOCK)		ON ags.AtividadeGrupoProfissionalId = agp.AtividadeGrupoProfissionalId                              
+INNER JOIN	LINKED_SERVER.dbo.PROFISSIONAL_REDE PR WITH (NOLOCK)				ON AGP.prof_codigo = PR.prof_codigo
+LEFT JOIN	LINKED_SERVER.dbo.TB_OCUPACAO CBO WITH (NOLOCK)						ON PR.CBO_CODIGO = CBO.CO_OCUPACAO	--Incluído pelo Chaym
+INNER JOIN	LINKED_SERVER.dbo.AtividadeGrupo AG WITH (NOLOCK)					ON AGp.AtividadeGrupoId = AG.AtividadeGrupoId                              
+INNER JOIN	LINKED_SERVER.dbo.UNIDADE U WITH (NOLOCK)							ON AG.UNIDADEID = U.UNIDADEID	--Incluído pelo Chaym
+INNER JOIN	LINKED_SERVER.dbo.Setor_Clinica SC WITH (NOLOCK)					ON AGS.ServicoId = SC.SetorClinicaId
+LEFT JOIN	LINKED_SERVER.dbo.TB_PROCEDIMENTO PRO WITH (NOLOCK)					ON PRO.CO_PROCEDIMENTO = SC.CO_PROCEDIMENTO
+OUTER APPLY(	SELECT TOP 1 
+					  pl.cbo_codigo
+					, pl.ProfissionalLotacaoId
+					, pl.prof_Codigo
+					, PL.prof_ativo
+					, PLCBO.NO_CLASSIFICACAO ----Alessandro 2
+				FROM LINKED_SERVER.dbo.PROFISSIONAL_LOTACAO PL WITH (NOLOCK)
+				INNER JOIN LINKED_SERVER.dbo.TB_OCUPACAO PLCBO WITH (NOLOCK) ON PL.cbo_codigo = PLCBO.CO_OCUPACAO ----Alessandro 3
+						WHERE PR.prof_codigo = pl.prof_codigo AND 
+						AG.UnidadeId = pl.UnidadeId AND
+						PL.IdFuncaoAtendimento = '170BCDAB-85BC-47BA-9B55-FFF6DCBD1B62' --atividade em grupo
+				) ProfissionalLotacao
+WHERE 
+	-- ( AG.DATAFIM >= @Data_Ini AND AG.DATAFIM < @Data_Fim )
+	( AG.DataInicio >= @Data_Ini AND AG.DATAFIM < @Data_Fim )
+	--AND	UnidadeId = ISNULL(@unidadeid,UNIDADEID)
+;
+
+
+
+
+--(116 rows affected) levou 00:00:01
+
+--SELECT TOP 10 * FROM #TBL_05
+--SELECT COUNT (*) FROM #TBL_05	--116	--116
+--SELECT COUNT (DISTINCT ATENDIMENTO_ID) AS QTD_ATENDIMENTO FROM #TBL_05	--
+--SELECT SUM (QUANTIDADE) AS TOTAL FROM #TBL_05
+
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*		Processo de Consolidações das tabelas		 */
+/* ================================================= */
+
+--SELECT COUNT (*) FROM #TBL_01		--9596
+--SELECT COUNT (*) FROM #TBL_02		--879
+--SELECT COUNT (*) FROM #TBL_03		--0
+--SELECT COUNT (*) FROM #TBL_04		--0
+--SELECT COUNT (*) FROM #TBL_05		--1
+
+INSERT INTO #TBL_06
+SELECT
+	  TBL_01.DT_COMPETENCIA
+	, TBL_01.ORIGEM
+	, TBL_01.ATENDIMENTO_ID
+	, TBL_01.VISITADOMICILIAR_ID
+	, TBL_01.ATIVIDADEGRUPO_ID
+	, TBL_01.PROCEDIMENTO_ID
+	, TBL_01.DATA_ATENDIMENTO
+	, TBL_01.DATA_INICIO
+	, TBL_01.DATA_FIM
+	, TBL_01.CATEGORIA_PROFISSIONAL
+	, TBL_01.NOME_PROFISSIONAL
+	, TBL_01.CID
+	, TBL_01.CIAP2
+	, TBL_01.UNIDADE_ID
+	, TBL_01.UNIDADE
+	, TBL_01.CNES
+	, TBL_01.COD_PROCEDIMENTO
+	, TBL_01.NOME_PROCEDIMENTO
+	, TBL_01.CBO_CODIGO
+	, TBL_01.PROF_CODIGO
+	, TBL_01.ID_FUNCAO_ATENDIMENTO
+	, TBL_01.QUANTIDADE
+FROM #TBL_01	TBL_01
+
+UNION ALL 
+
+SELECT
+	  TBL_02.DT_COMPETENCIA
+	, TBL_02.ORIGEM
+	, TBL_02.ATENDIMENTO_ID
+	, TBL_02.VISITADOMICILIAR_ID
+	, TBL_02.ATIVIDADEGRUPO_ID
+	, TBL_02.PROCEDIMENTO_ID
+	, TBL_02.DATA_ATENDIMENTO
+	, TBL_02.DATA_INICIO
+	, TBL_02.DATA_FIM
+	, TBL_02.CATEGORIA_PROFISSIONAL
+	, TBL_02.NOME_PROFISSIONAL
+	, TBL_02.CID
+	, TBL_02.CIAP2
+	, TBL_02.UNIDADE_ID
+	, TBL_02.UNIDADE
+	, TBL_02.CNES
+	, TBL_02.COD_PROCEDIMENTO
+	, TBL_02.NOME_PROCEDIMENTO
+	, TBL_02.CBO_CODIGO
+	, TBL_02.PROF_CODIGO
+	, TBL_02.ID_FUNCAO_ATENDIMENTO
+	, TBL_02.QUANTIDADE
+FROM #TBL_02	TBL_02
+
+UNION ALL 
+
+SELECT
+	  TBL_03.DT_COMPETENCIA
+	, TBL_03.ORIGEM
+	, TBL_03.ATENDIMENTO_ID
+	, TBL_03.VISITADOMICILIAR_ID
+	, TBL_03.ATIVIDADEGRUPO_ID
+	, TBL_03.PROCEDIMENTO_ID
+	, TBL_03.DATA_ATENDIMENTO
+	, TBL_03.DATA_INICIO
+	, TBL_03.DATA_FIM
+	, TBL_03.CATEGORIA_PROFISSIONAL
+	, TBL_03.NOME_PROFISSIONAL
+	, TBL_03.CID
+	, TBL_03.CIAP2
+	, TBL_03.UNIDADE_ID
+	, TBL_03.UNIDADE
+	, TBL_03.CNES
+	, TBL_03.COD_PROCEDIMENTO
+	, TBL_03.NOME_PROCEDIMENTO
+	, TBL_03.CBO_CODIGO
+	, TBL_03.PROF_CODIGO
+	, TBL_03.ID_FUNCAO_ATENDIMENTO
+	, TBL_03.QUANTIDADE
+FROM #TBL_03	TBL_03
+
+UNION ALL 
+
+SELECT
+	  TBL_04.DT_COMPETENCIA
+	, TBL_04.ORIGEM
+	, TBL_04.ATENDIMENTO_ID
+	, TBL_04.VISITADOMICILIAR_ID
+	, TBL_04.ATIVIDADEGRUPO_ID
+	, TBL_04.PROCEDIMENTO_ID
+	, TBL_04.DATA_ATENDIMENTO
+	, TBL_04.DATA_INICIO
+	, TBL_04.DATA_FIM
+	, TBL_04.CATEGORIA_PROFISSIONAL
+	, TBL_04.NOME_PROFISSIONAL
+	, TBL_04.CID
+	, TBL_04.CIAP2
+	, TBL_04.UNIDADE_ID
+	, TBL_04.UNIDADE
+	, TBL_04.CNES
+	, TBL_04.COD_PROCEDIMENTO
+	, TBL_04.NOME_PROCEDIMENTO
+	, TBL_04.CBO_CODIGO
+	, TBL_04.PROF_CODIGO
+	, TBL_04.ID_FUNCAO_ATENDIMENTO
+	, TBL_04.QUANTIDADE
+FROM #TBL_04	TBL_04
+
+UNION ALL 
+
+SELECT
+	  TBL_05.DT_COMPETENCIA
+	, TBL_05.ORIGEM
+	, TBL_05.ATENDIMENTO_ID
+	, TBL_05.VISITADOMICILIAR_ID
+	, TBL_05.ATIVIDADEGRUPO_ID
+	, TBL_05.PROCEDIMENTO_ID
+	, TBL_05.DATA_ATENDIMENTO
+	, TBL_05.DATA_INICIO
+	, TBL_05.DATA_FIM
+	, TBL_05.CATEGORIA_PROFISSIONAL
+	, TBL_05.NOME_PROFISSIONAL
+	, TBL_05.CID
+	, TBL_05.CIAP2
+	, TBL_05.UNIDADE_ID
+	, TBL_05.UNIDADE
+	, TBL_05.CNES
+	, TBL_05.COD_PROCEDIMENTO
+	, TBL_05.NOME_PROCEDIMENTO
+	, TBL_05.CBO_CODIGO
+	, TBL_05.PROF_CODIGO
+	, TBL_05.ID_FUNCAO_ATENDIMENTO
+	, TBL_05.QUANTIDADE
+FROM #TBL_05	TBL_05
+;
+--(10476 rows affected) levou 00:00:01
+--SELECT TOP 10 * FROM #TBL_06
+/* ================================================= */
+
+
+
+/* ================================================= */
+/* Criação de índices								 */
+/* ================================================= */
+--#TBL_06
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_ATENDIMENTO_ID ON #TBL_06 ( ATENDIMENTO_ID ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_VISITADOMICILIAR_ID ON #TBL_06 ( VISITADOMICILIAR_ID ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_ATIVIDADEGRUPO_ID ON #TBL_06 ( ATIVIDADEGRUPO_ID ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_UNIDADE_ID ON #TBL_06 ( UNIDADE_ID ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_COD_PROCEDIMENTO ON #TBL_06 ( COD_PROCEDIMENTO ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_CBO_CODIGO ON #TBL_06 ( CBO_CODIGO ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_PROF_CODIGO ON #TBL_06 ( PROF_CODIGO ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_ID_FUNCAO_ATENDIMENTO ON #TBL_06 ( ID_FUNCAO_ATENDIMENTO ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+CREATE NONCLUSTERED INDEX IDX_NC_TBL_06_CNES ON #TBL_06 ( CNES ASC )
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+/* ================================================= */
+
+
+/* ================================================= */
+/*
+SELECT COUNT (*) FROM #TBL_06	--10.476
+
+SELECT TOP 10 * FROM #TBL_06
+SELECT TOP 10 * FROM TBL_SIGTAP
+SELECT TOP 10 * FROM TBL_ESTABELECIMENTOS
+*/
+
+INSERT INTO #TBL_07
+SELECT
+	  TBL_06.DT_COMPETENCIA
+	, TBL_06.ORIGEM
+	, TBL_06.ATENDIMENTO_ID
+	, TBL_06.VISITADOMICILIAR_ID
+	, TBL_06.ATIVIDADEGRUPO_ID
+	, TBL_06.PROCEDIMENTO_ID
+	, TBL_06.DATA_ATENDIMENTO
+	, TBL_06.DATA_INICIO
+	, TBL_06.DATA_FIM
+	, TBL_06.CATEGORIA_PROFISSIONAL
+	, TBL_06.NOME_PROFISSIONAL
+	, TBL_06.CID
+	, TBL_06.CIAP2
+	, TBL_06.UNIDADE_ID
+	, TBL_06.UNIDADE
+	, TBL_06.CNES
+	, TBL_06.COD_PROCEDIMENTO
+	, TBL_06.NOME_PROCEDIMENTO
+	, TBL_06.CBO_CODIGO
+	, TBL_06.PROF_CODIGO
+	, TBL_06.ID_FUNCAO_ATENDIMENTO
+	, TBL_06.QUANTIDADE
+
+	, TB_2.COD_SIGTAP
+	--, TB_2.DESC_SIGTAP
+	, ISNULL(TB_2.TIPO, 'PROCEDIMENTOS')
+	--, TB_2.GRUPO
+	--, TB_2.SUB_GRUPO
+	--, TB_2.FORMA_CONTRATACAO
+
+	--, TB_3.CNES							AS CNES_ESTAB
+	, TB_3.NM_ESTABELECIMENTO_COMPLETO
+	, TB_3.NM_ESTABELECIMENTO_ABREVIADO
+	, TB_3.NM_POPULAR_ESTABELECIMENTO
+FROM #TBL_06	TBL_06
+	LEFT JOIN TBL_SIGTAP AS TB_2 ON TBL_06.COD_PROCEDIMENTO = TB_2.COD_SIGTAP
+	LEFT JOIN TBL_ESTABELECIMENTOS AS TB_3 ON TBL_06.CNES = TB_3.CNES
+
+--(11107 rows affected) levou 00:00:01
+--SELECT TOP 10 * FROM #TBL_07
+
+/*
+select distinct 
+	  UNIDADE
+	, NM_ESTABELECIMENTO_COMPLETO
+	, NM_ESTABELECIMENTO_ABREVIADO
+	, NM_POPULAR_ESTABELECIMENTO
+FROM #TBL_07
+order by UNIDADE
+*/
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*
+UPDATE #TBL_07
+SET CID = ''
+WHERE CID IS NULL
+*/
+
+UPDATE #TBL_07
+SET CID = 'Sem informação'
+WHERE CID IS NULL
+
+UPDATE #TBL_07
+SET CID = 'Sem informação'
+WHERE CID = ''
+
+
+/*
+UPDATE #TBL_07
+SET CIAP2 = ''
+WHERE CIAP2 IS NULL
+*/
+
+UPDATE #TBL_07
+SET CIAP2 = 'Sem informação'
+WHERE CIAP2 IS NULL
+
+UPDATE #TBL_07
+SET CIAP2 = 'Sem informação'
+WHERE CIAP2 = ''
+
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*				Processo da tabela final			 */
+/* ================================================= */
+
+INSERT INTO TBL_ATENC_ESPEC_PRIME_2
+SELECT 
+	  TBL_07.DT_COMPETENCIA
+	, TBL_07.ORIGEM
+	, TBL_07.ATENDIMENTO_ID
+	, TBL_07.VISITADOMICILIAR_ID
+	, TBL_07.ATIVIDADEGRUPO_ID
+	, TBL_07.PROCEDIMENTO_ID
+	, TBL_07.DATA_ATENDIMENTO
+	, TBL_07.DATA_INICIO
+	, TBL_07.DATA_FIM
+	, TBL_07.CATEGORIA_PROFISSIONAL
+	, TBL_07.NOME_PROFISSIONAL
+	, TBL_07.CID
+	, TBL_07.CIAP2
+	, TBL_07.UNIDADE_ID
+	, TBL_07.UNIDADE
+	, TBL_07.COD_PROCEDIMENTO
+	, TBL_07.NOME_PROCEDIMENTO
+	, TBL_07.CBO_CODIGO
+	, TBL_07.PROF_CODIGO
+	, TBL_07.ID_FUNCAO_ATENDIMENTO
+	, TBL_07.QUANTIDADE
+	, TBL_07.COD_SIGTAP
+	, TBL_07.TIPO
+	, TBL_07.NM_ESTABELECIMENTO_COMPLETO
+	, TBL_07.NM_ESTABELECIMENTO_ABREVIADO
+	, TBL_07.NM_POPULAR_ESTABELECIMENTO
+	, GETDATE()								AS DT_ATUALIZACAO
+FROM #TBL_07 TBL_07
+;
+
+--(320109 rows affected) levou 00:00:15
+
+--SELECT TOP 10 * FROM TBL_ATENC_ESPEC_PRIME_2
+/* ================================================= */
+
+
+
+/* ================================================= */
+/*
+SELECT
+	  DT_COMPETENCIA
+	, FORMAT(COUNT (*) , '#,###', 'pt-br')		AS QTD
+FROM TBL_ATENC_ESPEC_PRIME_2
+GROUP BY
+	  DT_COMPETENCIA
+ORDER BY
+	  DT_COMPETENCIA
+*/
+/*
+DT_COMPETENCIA	QTD
+2024-05			10.476
+2024-06			19.028
+2024-07			14.011
+*/
+
+/*
+SELECT MAX(DT_ATUALIZACAO)
+FROM TBL_ATENC_ESPEC_PRIME_2
+--2024-07-09 21:26:13.663
+*/
+
+/*
+SELECT
+	  ORIGEM
+	, FORMAT(COUNT (*) , '#,###', 'pt-br')		AS QTD
+FROM TBL_ATENC_ESPEC_PRIME_2
+GROUP BY
+	  ORIGEM
+ORDER BY
+	  ORIGEM
+*/
+
+
+/*
+SELECT
+	  ORIGEM
+	, FORMAT(SUM (QUANTIDADE) , '#,###', 'pt-br')		AS QTD_TOTAL
+FROM TBL_ATENC_ESPEC_PRIME_2
+--WHERE UNIDADE_ID = 'CBE69A19-8FA8-4E23-AB65-A09E20EC43A8'
+GROUP BY
+	  ORIGEM
+ORDER BY
+	  ORIGEM
+*/
+/*
+ORIGEM							QTD_TOTAL
+Procedimentos Realizados		9.608
+Serviços da Visita Domiciliar	25.211
+Visitas ACS						12.684
+*/
+/* ================================================= */
+
+
+
+/* ================================================= */
+/* Apaga as tabelas temporárias que não serão usadas */
+/* ================================================= */
+
+DROP TABLE #TBL_01;
+DROP TABLE #TBL_02;
+DROP TABLE #TBL_03;
+DROP TABLE #TBL_04;
+DROP TABLE #TBL_05;
+DROP TABLE #TBL_06;
+DROP TABLE #TBL_07;
+
+/* ================================================= */
+
+
+
+END; --Fecha PROCEDURE
